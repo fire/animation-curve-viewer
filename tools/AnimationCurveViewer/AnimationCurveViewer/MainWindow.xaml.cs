@@ -41,7 +41,9 @@ namespace iim.AnimationCurveViewer
                 };
 
                 if (dlg.ShowDialog() != true)
+                {
                     return;
+                }
 
                 gltfFilePath = Path.GetFullPath(dlg.FileName);
             }
