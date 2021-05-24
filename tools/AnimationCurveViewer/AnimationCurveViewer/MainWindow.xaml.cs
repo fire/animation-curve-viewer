@@ -70,8 +70,8 @@ namespace iim.AnimationCurveViewer
             // TODO: Use viewmodels!
             var fontFamily = new FontFamily("Consolas");
 
-            using var chebyStream = File.Create(Path.Combine(@"c:\temp\gltf", "chevy.bin"));
-            using var errorStream = File.Create(Path.Combine(@"c:\temp\gltf", "errors.bin"));
+            using var chebyStream = File.Create("chevy.bin");
+            using var errorStream = File.Create("errors.bin");
 
             var curveColors = new[]
             {
@@ -479,13 +479,13 @@ namespace iim.AnimationCurveViewer
             // Save
             foreach (var path in Directory.GetFiles(Path.GetDirectoryName(gltfFilePath)))
             {
-                File.Copy(path, Path.Combine(@"c:\temp\gltf", Path.GetFileName(path)), true);
+                File.Copy(path, Path.GetFileName(path), true);
             }
 
             for (var index = 0; index < gltf.Buffers.Length; index++)
             {
                 var buffer = gltf.Buffers[index];
-                File.WriteAllBytes(Path.Combine(@"c:\temp\gltf", buffer.Uri), bufferProvider(buffer, index));
+                File.WriteAllBytes(buffer.Uri, bufferProvider(buffer, index));
             }
         }
     }
