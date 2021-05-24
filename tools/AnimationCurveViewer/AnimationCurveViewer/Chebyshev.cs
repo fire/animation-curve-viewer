@@ -82,10 +82,5 @@ namespace iim.AnimationCurveViewer
         }
 
         public double Evaluate(double x) => Evaluate(x, Count);
-
-        // int setm(double thresh) { while (m > 1 && abs(c[m - 1]) < thresh) m--; return m; }
-        //
-        // double eval(double x, int m);
-        // inline double operator() (double x) {return eval(x, m);
     }
 }
