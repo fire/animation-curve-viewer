@@ -25,8 +25,6 @@ namespace iim.AnimationCurveViewer
     {
         public MainWindow()
         {
-            // TODO: This was a quick and dirty one-day job, cleanup!
-
             InitializeComponent();
 
             var args = Environment.GetCommandLineArgs();
@@ -58,16 +56,9 @@ namespace iim.AnimationCurveViewer
 
             var bufferProvider = gltf.CreateDefaultBufferProvider(gltfFilePath);
 
-            // ChannelProcessor.Process(gltf, bufferProvider, ChannelQuantizer.Process);
-            // var fitter = new AkimaChannelFitter();
-            // var fitter = new ChebyshevChannelFitter();
-            // var fitter = new ChannelQuantizer();
-            // ChannelProcessor.Process(gltf, bufferProvider, fitter.Process, false);
-
             var totalInputByteCount = 0;
             var totalOutputByteCount = 0;
 
-            // TODO: Use viewmodels!
             var fontFamily = new FontFamily("Consolas");
 
             using var chebyStream = File.Create("chevy.bin");
@@ -105,8 +96,6 @@ namespace iim.AnimationCurveViewer
             var tabBackground = new SolidColorBrush(Color.FromRgb(32, 32, 32));
 
             var stopAtFirst = false;
-
-#if true
             var inputByteCount = 0;
             var outputByteCount = 0;
 
@@ -137,8 +126,6 @@ namespace iim.AnimationCurveViewer
                         .Children.Select(c => (child: gltf.Nodes[c], parent)))
                     .ToDictionary(pair => pair.child, pair => pair.parent);
 
-                // var gltf = glTFLoader.Interface.LoadModel(@"C:\Users\bugfa\Downloads\001_KneeBounce\Legs_ClosedKnee_Sides\Legs_ClosedKnee_Sides.gltf");
-                // var buffer = new Span<byte>(File.ReadAllBytes(@"C:\Users\bugfa\Downloads\001_KneeBounce\Legs_ClosedKnee_Sides\Legs_ClosedKnee_Sides0.bin"));
                 foreach (var animation in gltf.Animations)
                 {
                     for (var iChannel = 0; iChannel < animation.Channels.Length; iChannel++)
@@ -178,8 +165,6 @@ namespace iim.AnimationCurveViewer
 
                         // Add a curve for each dimension to the canvas
                         var pointCount = timesAccessor.Count;
-                        // var curveTimes = new float[pointCount];
-                        // var curvesPoints = new Point[dimension][];
 
                         if (timesAccessor.ComponentType != Accessor.ComponentTypeEnum.FLOAT)
                             throw new NotSupportedException($"{channelTitle} has non-float time accessor");
@@ -189,18 +174,6 @@ namespace iim.AnimationCurveViewer
 
                         var timesFloats = MemoryMarshal.Cast<byte, float>(timesSpan);
                         var valueFloats = MemoryMarshal.Cast<byte, float>(valuesSpan);
-
-                        // {
-                        //     var curvePoints = curvesPoints[axis] = new Point[pointCount];
-                        //
-                        //     for (int i = 0; i < pointCount; ++i)
-                        //     {
-                        //         var j = i * dimension + axis;
-                        //         var t = timesFloats[i];
-                        //         var v = valueFloats[j];
-                        //         curvePoints[i] = new Point(t, v);
-                        //     }
-                        // }
 
                         // Compute y starts (visual min) and scales.
                         var yStarts = new double[dimension];
@@ -319,20 +292,6 @@ namespace iim.AnimationCurveViewer
                                 ClipToBounds = false,
                                 IsHitTestVisible = false
                             });
-
-                            // if (showCurveSamples)
-                            // {
-                            //     var dots = Curve.ToPointsGeometry(visualPoints[axis], curveThickness);
-                            //
-                            //     curvesCanvas.Children.Add(new PathShape
-                            //     {
-                            //         Data = dots,
-                            //         Height = curveHeight,
-                            //         Fill = Brushes.LightGoldenrodYellow,
-                            //         ClipToBounds = false,
-                            //         IsHitTestVisible = false
-                            //     });
-                            // }
                         }
 
                         // Process animation channel
@@ -397,46 +356,6 @@ namespace iim.AnimationCurveViewer
                         };
 
                         curvesCanvas.Children.Add(frameMarker);
-
-#if false
-                        curvesCanvas.MouseLeave += (sender, e) => { frameMarker.Visibility = Visibility.Hidden; };
-
-                        curvesCanvas.MouseMove += (sender, e) =>
-                        {
-                            if (e.LeftButton != MouseButtonState.Pressed)
-                                return;
-
-                            frameMarker.Visibility = Visibility.Visible;
-
-                            var mp = e.GetPosition(curvesCanvas);
-
-                            var frame = (int)Math.Round((mp.X - xOffset) / pixelsPerFrame);
-
-                            if (frame >= 0 && frame < curveTimes.Length)
-                            {
-                                var text = new StringBuilder();
-
-                                var time = curveTimes[frame];
-
-                                text.Append($"frame: {frame}  time: {time}  value: (");
-
-                                frameMarker.X1 = frameMarker.X2 = frame * pixelsPerFrame + xOffset;
-
-                                for (int axis = 0; axis < dimension; ++axis)
-                                {
-                                    if (axis != 0)
-                                        text.Append("; ");
-
-                                    text.Append(curvesPoints[axis][frame].Y);
-                                }
-
-                                text.Append(')');
-
-                                keyInfo.Text = text.ToString();
-                            }
-                        };
-#endif
-
                         curveStack.Children.Add(animationGroup);
 
                         if (stopAtFirst)
@@ -472,11 +391,8 @@ namespace iim.AnimationCurveViewer
 
             outputByteCount += (int)quantStream.Length;
 
-            //Title = $"{inputByteCount} -> {outputByteCount} 1/{inputByteCount * 1D / outputByteCount:F2} {outputByteCount * 100D / inputByteCount:F2}%)";
-#endif
             Title = $"{totalInputByteCount} -> {totalOutputByteCount} ({1.0 * totalInputByteCount / totalOutputByteCount:0.00}x)";
 
-            // Save
             foreach (var path in Directory.GetFiles(Path.GetDirectoryName(gltfFilePath)))
             {
                 File.Copy(path, Path.GetFileName(path), true);
