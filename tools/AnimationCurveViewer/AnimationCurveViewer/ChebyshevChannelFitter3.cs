@@ -134,7 +134,9 @@ namespace iim.AnimationCurveViewer
                                   }
 
                                   if (!fits)
+                                  {
                                       break;
+                                  }
 
                                   double input_byte_length = (end - start_index + 1) * 4;
                                   double output_byte_length = 1 + 1 + chebyCount * bytes_per_coef;
