@@ -11,63 +11,63 @@ namespace iim.AnimationCurveViewer
 {
     public class ChebyshevChannelFitter3
     {
-        private readonly BinaryWriter _chevyStream;
-        private readonly BinaryWriter _countStream;
+        private readonly BinaryWriter _chevy_stream;
+        private readonly BinaryWriter _count_stream;
 
-        public int InputByteCount;
-        public int OutputByteCount;
+        public int input_byte_count;
+        public int output_byte_count;
 
-        public ChebyshevChannelFitter3(Stream chevyStream, Stream errorStream)
+        public ChebyshevChannelFitter3(Stream r_chevy_stream, Stream r_error_stream)
         {
-            _chevyStream = new BinaryWriter(chevyStream);
-            _countStream = new BinaryWriter(errorStream);
+            _chevy_stream = new BinaryWriter(r_chevy_stream);
+            _count_stream = new BinaryWriter(r_error_stream);
         }
 
-        public void Process(Gltf gltf,
-            Animation animation, AnimationChannel channel,
-            Span<float> times, Span<float> inputValues, bool isRoot)
+        public void Process(Gltf p_gltf,
+            Animation p_animation, AnimationChannel p_channel,
+            Span<float> r_times, Span<float> r_input_values, bool p_is_root)
         {
-            var pathKind = channel.Target.Path;
+            var path_kind = p_channel.Target.Path;
 
-            var accessor = gltf.GetChannelOutputAccessor(animation, channel);
+            var accessor = p_gltf.GetChannelOutputAccessor(p_animation, p_channel);
             var dimension = accessor.GetComponentDimension();
 
-            var sampleCount = times.Length;
+            var sample_count = r_times.Length;
 
-            var values = inputValues;
+            var values = r_input_values;
 
-            if (channel.Target.Path == AnimationChannelTarget.PathEnum.rotation)
+            if (p_channel.Target.Path == AnimationChannelTarget.PathEnum.rotation)
             {
                 // Convert to log of quaternion, assuming quaternions are unit length
                 dimension = 3;
 
                 // 4 -> 3
-                InputByteCount += 4 * sampleCount;
+                input_byte_count += 4 * sample_count;
 
-                values = new float[sampleCount * 3];
+                values = new float[sample_count * 3];
 
-                for (int i = 0; i < sampleCount; ++i)
+                for (int sample_i = 0; sample_i < sample_count; ++sample_i)
                 {
-                    var qx = inputValues[i * 4 + 0];
-                    var qy = inputValues[i * 4 + 1];
-                    var qz = inputValues[i * 4 + 2];
-                    var qw = inputValues[i * 4 + 3];
+                    var q_x = r_input_values[sample_i * 4 + 0];
+                    var q_y = r_input_values[sample_i * 4 + 1];
+                    var q_z = r_input_values[sample_i * 4 + 2];
+                    var q_w = r_input_values[sample_i * 4 + 3];
 
-                    var q1 = new Quaternion(qx, qy, qz, qw);
-                    var v = q1.Log();
+                    var q_1 = new Quaternion(q_x, q_y, q_z, q_w);
+                    var v = q_1.Log();
 
-                    values[i * 3 + 0] = v.X;
-                    values[i * 3 + 1] = v.Y;
-                    values[i * 3 + 2] = v.Z;
+                    values[sample_i * 3 + 0] = v.X;
+                    values[sample_i * 3 + 1] = v.Y;
+                    values[sample_i * 3 + 2] = v.Z;
                 }
             }
 
-            var bucketLength = 256;
+            var bucket_length = 256;
 
-            var xPoints = new double[bucketLength];
-            var yPoints = new double[bucketLength];
+            var x_points = new double[bucket_length];
+            var y_points = new double[bucket_length];
 
-            var absMaxError = pathKind switch
+            var abs_max_error = path_kind switch
             {
                 AnimationChannelTarget.PathEnum.translation => 0.1,
                 AnimationChannelTarget.PathEnum.rotation => 1D / 1024,
@@ -76,57 +76,57 @@ namespace iim.AnimationCurveViewer
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            var coefScales = Enumerable.Range(0, 100).Select(i => Math.Exp(i) / absMaxError).ToArray();
+            var coef_scales = Enumerable.Range(0, 100).Select(i => Math.Exp(i) / abs_max_error).ToArray();
 
-            const int bytesPerCoef = 2;
+            const int bytes_per_coef = 2;
 
-            for (int axis = 0; axis < dimension; ++axis)
+            for (int axis_i = 0; axis_i < dimension; ++axis_i)
             {
-                for (int pointStart = 0; pointStart < sampleCount; pointStart += bucketLength)
+                for (int point_start_i = 0; point_start_i < sample_count; point_start_i += bucket_length)
                 {
-                    var pointCount = Math.Min(bucketLength, sampleCount - pointStart);
+                    var point_count = Math.Min(bucket_length, sample_count - point_start_i);
 
-                    if (pointCount < 2)
+                    if (point_count < 2)
                     {
                         // Not enough points in bucket to do compression.
-                        OutputByteCount += 1 + 4 * pointCount;
-                        InputByteCount += 4 * pointCount;
+                        output_byte_count += 1 + 4 * point_count;
+                        input_byte_count += 4 * point_count;
                         continue;
                     }
 
-                    for (int i = 0; i < pointCount; ++i)
+                    for (int point_i = 0; point_i < point_count; ++point_i)
                     {
-                        var j = (pointStart + i) * dimension + axis;
-                        var t = times[pointStart + i];
+                        var j = (point_start_i + point_i) * dimension + axis_i;
+                        var t = r_times[point_start_i + point_i];
                         var v = values[j];
-                        xPoints[i] = t;
-                        yPoints[i] = v;
+                        x_points[point_i] = t;
+                        y_points[point_i] = v;
                     }
 
                     // Build a spline through all the points
-                    alglib.spline1dbuildakima(xPoints, yPoints, pointCount, out var spline);
+                    alglib.spline1dbuildakima(x_points, y_points, point_count, out var spline);
 
-                    (int bestCheby, int bestEnd, double bestCompression)[] FitChevy(int startIndex, int maxChebyCount)
+                    (int best_cheby, int best_end, double best_compression)[] FitChevy(int start_index, int max_cheby_count)
                     {
-                        var fits = Enumerable.Range(1, maxChebyCount + 1).AsParallelInRelease().Select(chebyCount =>
+                        var fits = Enumerable.Range(1, max_cheby_count + 1).AsParallelInRelease().Select(chebyCount =>
                           {
-                              var pickChebyCount = 1;
-                              var pickCompression = 0.0;
-                              var pickEnd = startIndex;
+                              var pick_cheby_count = 1;
+                              var pick_compression = 0.0;
+                              var pick_end = start_index;
 
-                              for (int end = pointCount - startIndex < maxChebyCount ? pointCount - 1 : startIndex + 1; end < pointCount; ++end)
+                              for (int end = point_count - start_index < max_cheby_count ? point_count - 1 : start_index + 1; end < point_count; ++end)
                               {
                                   var cheby = new ChebyshevF(x => alglib.spline1dcalc(spline, x),
-                                      xPoints[startIndex], xPoints[end], chebyCount, coefScales);
+                                      x_points[start_index], x_points[end], chebyCount, coef_scales);
 
                                   // See if the curve fits.
                                   bool fits = true;
 
-                                  for (int i = startIndex + 1; i <= end; ++i)
+                                  for (int i = start_index + 1; i <= end; ++i)
                                   {
-                                      var py = cheby.Evaluate(xPoints[i], chebyCount);
-                                      var dy = yPoints[i] - py;
-                                      if (Math.Abs(dy) > absMaxError)
+                                      var p_y = cheby.Evaluate(x_points[i], chebyCount);
+                                      var d_y = y_points[i] - p_y;
+                                      if (Math.Abs(d_y) > abs_max_error)
                                       {
                                           fits = false;
                                           break;
@@ -136,19 +136,19 @@ namespace iim.AnimationCurveViewer
                                   if (!fits)
                                       break;
 
-                                  double inputByteLength = (end - startIndex + 1) * 4;
-                                  double outputByteLength = 1 + 1 + chebyCount * bytesPerCoef;
-                                  double compression = inputByteLength / outputByteLength;
+                                  double input_byte_length = (end - start_index + 1) * 4;
+                                  double output_byte_length = 1 + 1 + chebyCount * bytes_per_coef;
+                                  double compression = input_byte_length / output_byte_length;
 
-                                  if (pickCompression <= compression)
+                                  if (pick_compression <= compression)
                                   {
-                                      pickCompression = compression;
-                                      pickChebyCount = chebyCount;
-                                      pickEnd = end;
+                                      pick_compression = compression;
+                                      pick_cheby_count = chebyCount;
+                                      pick_end = end;
                                   }
                               }
 
-                              return (pickChebyCount, pickEnd, pickCompression);
+                              return (pick_cheby_count, pick_end, pickCompression:pick_compression);
                           })
                         .AsSequentialInRelease()
                         .OrderByDescending(pair => pair.pickCompression)
@@ -157,82 +157,82 @@ namespace iim.AnimationCurveViewer
                         return fits;
                     }
 
-                    IEnumerable<int> chebyCounts = new[] { 4, 8, 16, 24, 32 };
+                    IEnumerable<int> cheby_counts = new[] { 4, 8, 16, 24, 32 };
 
-                    var trials = chebyCounts
+                    var trials = cheby_counts
                         .AsParallelInRelease()
-                        .Select(maxChebyCount =>
+                        .Select(max_cheby_count =>
                         {
                             int start = 0;
-                            int inputByteCount = 0;
-                            int outputByteCount = 0;
+                            int input_byte_count = 0;
+                            int output_byte_count = 0;
 
-                            var entries = new List<(int chebyCount, int start, int end, double compression)>();
+                            var entries = new List<(int cheby_count, int start, int end, double compression)>();
 
-                            while (start < pointCount - 2)
+                            while (start < point_count - 2)
                             {
                                 // Find the best fitting Chebyshev polynomial 
-                                var fits = FitChevy(start, maxChebyCount);
+                                var fits = FitChevy(start, max_cheby_count);
 
-                                var (chebyCount, end, compression) = fits.First();
+                                var (cheby_count, end, compression) = fits.First();
 
-                                entries.Add((chebyCount, start, end, compression));
+                                entries.Add((cheby_count, start, end, compression));
 
-                                inputByteCount += (end - start + 1) * 4;
+                                input_byte_count += (end - start + 1) * 4;
 
                                 // 1 byte for Cheby #coefficients, 1 byte for #samples
-                                outputByteCount += 1 + 1 + chebyCount * bytesPerCoef;
+                                output_byte_count += 1 + 1 + cheby_count * bytes_per_coef;
 
                                 start = end + 1;
                             }
 
-                            return (inputByteCount, outputByteCount, entries);
+                            return (input_byte_count, output_byte_count, entries);
                         })
                         .AsSequentialInRelease()
                         .ToArray();
 
-                    var bestTrial = trials.OrderBy(trial => trial.outputByteCount).First();
+                    var best_trial = trials.OrderBy(trial => trial.output_byte_count).First();
 
-                    InputByteCount += bestTrial.inputByteCount;
-                    OutputByteCount += bestTrial.outputByteCount;
+                    input_byte_count += best_trial.input_byte_count;
+                    output_byte_count += best_trial.output_byte_count;
 
-                    foreach (var (chebyCount, start, end, _) in bestTrial.entries)
+                    foreach (var (cheby_count, start, end, _) in best_trial.entries)
                     {
                         var cheby = new ChebyshevF(x => alglib.spline1dcalc(spline, x),
-                            xPoints[start], xPoints[end], chebyCount, coefScales);
+                            x_points[start], x_points[end], cheby_count, coef_scales);
 
-                        _countStream.Write((byte)cheby.Count);
-                        _countStream.Write((byte)(start - end + 1));
+                        _count_stream.Write((byte)cheby.Count);
+                        _count_stream.Write((byte)(start - end + 1));
                         foreach (var coef in cheby.FixedPoints)
                         {
-                            _chevyStream.Write(coef);
+                            _chevy_stream.Write(coef);
                         }
 
                         for (int i = start; i <= end; ++i)
                         {
-                            var j = (pointStart + i) * dimension + axis;
-                            var py = cheby.Evaluate(xPoints[i], chebyCount);
+                            var j = (point_start_i + i) * dimension + axis_i;
+                            var py = cheby.Evaluate(x_points[i], cheby_count);
                             values[j] = (float)py;
                         }
                     }
                 }
             }
 
-            if (channel.Target.Path == AnimationChannelTarget.PathEnum.rotation)
+            if (p_channel.Target.Path == AnimationChannelTarget.PathEnum.rotation)
             {
                 // Convert back to quaternions
-                for (int i = 0; i < sampleCount; ++i)
+                for (int sample_i = 0; sample_i < sample_count; ++sample_i)
                 {
-                    var nx = values[i * 3 + 0];
-                    var ny = values[i * 3 + 1];
-                    var nz = values[i * 3 + 2];
+                    var n_x = values[sample_i * 3 + 0];
+                    var n_y = values[sample_i * 3 + 1];
+                    var n_z = values[sample_i * 3 + 2];
 
-                    var q = new Vector3(nx, ny, nz).Exp();
+                    var q = new Vector3(n_x, n_y, n_z).Exp();
 
-                    inputValues[i * 4 + 0] = q.X;
-                    inputValues[i * 4 + 1] = q.Y;
-                    inputValues[i * 4 + 2] = q.Z;
-                    inputValues[i * 4 + 3] = q.W;
+                    r_input_values[sample_i * 4 + 0] = q.X;
+                    r_input_values[sample_i * 4 + 1] = q.Y;
+                    r_input_values[sample_i * 4 + 2] = q.Z;
+                    r_input_values[sample_i * 4 + 3] = q.W;
                 }
             }
         }

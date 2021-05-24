@@ -321,14 +321,14 @@ namespace iim.AnimationCurveViewer
 
                         animationHeader.Children.Add(new TextBlock
                         {
-                            Text = $"{targetNodeName}/{animation.Name}#{iChannel} ({fitter.InputByteCount } -> { fitter.OutputByteCount} ({ 1.0 * fitter.InputByteCount / fitter.OutputByteCount:0.00})",
+                            Text = $"{targetNodeName}/{animation.Name}#{iChannel} ({fitter.input_byte_count } -> { fitter.output_byte_count} ({ 1.0 * fitter.input_byte_count / fitter.output_byte_count:0.00})",
                             Foreground = Brushes.Yellow,
                             HorizontalAlignment = HorizontalAlignment.Left,
                             Margin = new Thickness(textBlockMargin, 0, textBlockMargin, 0),
                         });
 
-                        totalInputByteCount += fitter.InputByteCount;
-                        totalOutputByteCount += fitter.OutputByteCount;
+                        totalInputByteCount += fitter.input_byte_count;
+                        totalOutputByteCount += fitter.output_byte_count;
 
                         var curvesScroller = new ScrollViewer
                         {
