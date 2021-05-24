@@ -6,55 +6,57 @@ namespace iim.AnimationCurveViewer
 {
     public class Chebyshev
     {
-        public readonly int Count;
-        public readonly double[] Coefficients;
-        public readonly double MinX;
-        public readonly double MaxX;
+        public readonly int count;
+        public readonly double[] coefficients;
+        public readonly double min_x;
+        public readonly double max_x;
 
-        public Chebyshev(ReadOnlySpan<double> coefficients, double minX, double maxX)
+        public Chebyshev(ReadOnlySpan<double> p_coefficients, double p_min_x, double p_max_x)
         {
-            Count = coefficients.Length;
-            Coefficients = coefficients.ToArray();
-            MinX = minX;
-            MaxX = maxX;
+            count = p_coefficients.Length;
+            this.coefficients = p_coefficients.ToArray();
+            min_x = p_min_x;
+            max_x = p_max_x;
         }
 
-        public Chebyshev(IEnumerable<float> coefficients, double minX, double maxX) : this(coefficients.Select(f => (double) f).ToArray(), minX, maxX)
+        public Chebyshev(IEnumerable<float> p_coefficients, double p_min_x, double p_max_x) : this(p_coefficients.Select(f => (double) f).ToArray(), p_min_x, p_max_x)
         {
         }
 
-        public Chebyshev(Func<double, double> func, double minX, double maxX, int count)
+        public Chebyshev(Func<double, double> p_func, double p_min_x, double p_max_x, int p_count)
         {
-            Count = count;
-            Coefficients = new double[count];
-            MinX = minX;
-            MaxX = maxX;
+            this.count = p_count;
+            coefficients = new double[p_count];
+            min_x = p_min_x;
+            max_x = p_max_x;
 
-            int k, j;
+            int count_k, count_j;
             double y;
-            double[] f = new double[Count];
-            var bma = 0.5 * (MaxX - MinX);
-            var bpa = 0.5 * (MaxX + MinX);
-            for (k = 0; k < Count; k++)
+            double[] f = new double[this.count];
+            var bma = 0.5 * (max_x - min_x);
+            var bpa = 0.5 * (max_x + min_x);
+            for (count_k = 0; count_k < this.count; count_k++)
             {
-                y = Math.Cos(Math.PI * (k + 0.5) / Count);
-                f[k] = func(y * bma + bpa);
+                y = Math.Cos(Math.PI * (count_k + 0.5) / this.count);
+                f[count_k] = p_func(y * bma + bpa);
             }
-            var fac = 2.0 / Count;
-            for (j = 0; j < Count; j++)
+            var fac = 2.0 / this.count;
+            for (count_j = 0; count_j < this.count; count_j++)
             {
                 var sum = 0.0;
-                for (k = 0; k < Count; k++)
-                    sum += f[k] * Math.Cos(Math.PI * j * (k + 0.5) / Count);
-                Coefficients[j] = fac * sum;
+                for (count_k = 0; count_k < this.count; count_k++)
+                {
+                    sum += f[count_k] * Math.Cos(Math.PI * count_j * (count_k + 0.5) / this.count);
+                }
+                coefficients[count_j] = fac * sum;
             }
         }
 
-        public int GetTruncatedCount(double threshold)
+        public int GetTruncatedCount(double p_threshold)
         {
-            for (int m = Count; --m >= 1;)
+            for (int m = count; --m >= 1;)
             {
-                if (Math.Abs(Coefficients[m - 1]) > threshold)
+                if (Math.Abs(coefficients[m - 1]) > p_threshold)
                 {
                     return m;
                 }
@@ -63,24 +65,26 @@ namespace iim.AnimationCurveViewer
             return 1;
         }
 
-        public double Evaluate(double x, int m)
+        public double Evaluate(double p_x, int p_m)
         {
             double d = 0.0, dd = 0.0, y;
             int j;
-            if ((x - MinX) * (x - MaxX) > 0.0)
-                throw new ArgumentOutOfRangeException(nameof(x));
+            if ((p_x - min_x) * (p_x - max_x) > 0.0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(p_x));
+            }
 
-            var y2 = 2.0 * (y = (2.0 * x - MinX - MaxX) / (MaxX - MinX));
+            var y2 = 2.0 * (y = (2.0 * p_x - min_x - max_x) / (max_x - min_x));
 
-            for (j = m - 1; j > 0; j--)
+            for (j = p_m - 1; j > 0; j--)
             {
                 var sv = d;
-                d = y2 * d - dd + Coefficients[j];
+                d = y2 * d - dd + coefficients[j];
                 dd = sv;
             }
-            return y * d - dd + 0.5 * Coefficients[0];
+            return y * d - dd + 0.5 * coefficients[0];
         }
 
-        public double Evaluate(double x) => Evaluate(x, Count);
+        public double Evaluate(double p_x) => Evaluate(p_x, count);
     }
 }
