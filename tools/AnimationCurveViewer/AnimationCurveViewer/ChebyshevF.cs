@@ -6,62 +6,64 @@ namespace iim.AnimationCurveViewer
 {
     public class ChebyshevF
     {
-        public readonly int Count;
-        public readonly double[] Coefficients;
-        public readonly short[] FixedPoints;
-        public readonly double MinX;
-        public readonly double MaxX;
+        public readonly int count;
+        public readonly double[] coefficients;
+        public readonly short[] fixed_points;
+        public readonly double min_x;
+        public readonly double max_x;
 
-        public ChebyshevF(Func<double, double> func, double minX, double maxX, int count, double[] scales)
+        public ChebyshevF(Func<double, double> p_func, double p_min_x, double p_max_x, int p_count, double[] p_scales)
         {
-            Count = count;
-            Coefficients = new double[count];
-            FixedPoints = new short[count];
-            MinX = minX;
-            MaxX = maxX;
+            this.count = p_count;
+            coefficients = new double[p_count];
+            fixed_points = new short[p_count];
+            min_x = p_min_x;
+            max_x = p_max_x;
 
             int k, j;
             double y;
-            double[] f = new double[Count];
-            var bma = 0.5 * (MaxX - MinX);
-            var bpa = 0.5 * (MaxX + MinX);
-            for (k = 0; k < Count; k++)
+            double[] f = new double[this.count];
+            var bma = 0.5 * (max_x - min_x);
+            var bpa = 0.5 * (max_x + min_x);
+            for (k = 0; k < this.count; k++)
             {
-                y = Math.Cos(Math.PI * (k + 0.5) / Count);
-                f[k] = func(y * bma + bpa);
+                y = Math.Cos(Math.PI * (k + 0.5) / this.count);
+                f[k] = p_func(y * bma + bpa);
             }
-            var fac = 2.0 / Count;
-            for (j = 0; j < Count; j++)
+            var fac = 2.0 / this.count;
+            for (j = 0; j < this.count; j++)
             {
                 var sum = 0.0;
-                for (k = 0; k < Count; k++)
-                    sum += f[k] * Math.Cos(Math.PI * j * (k + 0.5) / Count);
+                for (k = 0; k < this.count; k++)
+                    sum += f[k] * Math.Cos(Math.PI * j * (k + 0.5) / this.count);
 
                 // We store coefficients as fixed points.
                 var c = fac * sum;
-                FixedPoints[j] = (short)Math.Round(c * scales[j]);
-                Coefficients[j] = FixedPoints[j] / scales[j];
+                fixed_points[j] = (short)Math.Round(c * p_scales[j]);
+                coefficients[j] = fixed_points[j] / p_scales[j];
             }
         }
 
-        public double Evaluate(double x, int m)
+        public double Evaluate(double p_x, int p_m)
         {
             double d = 0.0, dd = 0.0, y;
             int j;
-            if ((x - MinX) * (x - MaxX) > 0.0)
-                throw new ArgumentOutOfRangeException(nameof(x));
+            if ((p_x - min_x) * (p_x - max_x) > 0.0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(p_x));
+            }
 
-            var y2 = 2.0 * (y = (2.0 * x - MinX - MaxX) / (MaxX - MinX));
+            var y2 = 2.0 * (y = (2.0 * p_x - min_x - max_x) / (max_x - min_x));
 
-            for (j = m - 1; j > 0; j--)
+            for (j = p_m - 1; j > 0; j--)
             {
                 var sv = d;
-                d = y2 * d - dd + Coefficients[j];
+                d = y2 * d - dd + coefficients[j];
                 dd = sv;
             }
-            return y * d - dd + 0.5 * Coefficients[0];
+            return y * d - dd + 0.5 * coefficients[0];
         }
 
-        public double Evaluate(double x) => Evaluate(x, Count);
+        public double Evaluate(double p_x) => Evaluate(p_x, count);
     }
 }

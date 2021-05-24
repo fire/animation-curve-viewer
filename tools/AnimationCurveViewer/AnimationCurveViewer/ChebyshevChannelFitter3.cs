@@ -201,9 +201,9 @@ namespace iim.AnimationCurveViewer
                         var cheby = new ChebyshevF(x => alglib.spline1dcalc(spline, x),
                             x_points[start], x_points[end], cheby_count, coef_scales);
 
-                        _count_stream.Write((byte)cheby.Count);
+                        _count_stream.Write((byte)cheby.count);
                         _count_stream.Write((byte)(start - end + 1));
-                        foreach (var coef in cheby.FixedPoints)
+                        foreach (var coef in cheby.fixed_points)
                         {
                             _chevy_stream.Write(coef);
                         }
