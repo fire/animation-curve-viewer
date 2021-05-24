@@ -118,7 +118,6 @@ namespace iim.AnimationCurveViewer
                     var bestChebyError = 0.0;
                     var bestErrorBits = 0;
                     var bestByteLength = int.MaxValue;
-                    var bestFound = false;
 
                     foreach (var qBits in bits)
                     {
@@ -128,7 +127,6 @@ namespace iim.AnimationCurveViewer
                         // Find the truncated polygon that results in the smallest bitsize.
                         var qChebyCount = pointCount;
                         var qChebyError = 0.0;
-                        var qChebyFound = false;
 
                         for (var chebyCount = 1; chebyCount <= pointCount; ++chebyCount)
                         {
@@ -151,7 +149,6 @@ namespace iim.AnimationCurveViewer
                             {
                                 qChebyCount = chebyCount;
                                 qChebyError = error;
-                                qChebyFound = true;
                                 break;
                             }
                         }
