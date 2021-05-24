@@ -157,11 +157,7 @@ namespace iim.AnimationCurveViewer
                         return fits;
                     }
 
-#if DEBUG
-                    IEnumerable<int> chebyCounts = new[] { 8 };
-#else
                     IEnumerable<int> chebyCounts = new[] { 4, 8, 16, 24, 32 };
-#endif
 
                     var trials = chebyCounts
                         .AsParallelInRelease()
