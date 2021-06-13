@@ -8,3 +8,4 @@ playblast*
 *.pyc
 ipch
 .DS_Store
+AnimationCurveViewer/obj/
