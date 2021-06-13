@@ -1,3 +1,0 @@
-global proc string maya2glTF_version() {
-    return "@GIT_TAG@ @GIT_SHORT_HASH@";
-}
